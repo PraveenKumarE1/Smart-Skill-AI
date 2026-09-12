@@ -1,11 +1,8 @@
 from flask import Flask, render_template, request
-import joblib
-import os
+from train_model import train_model
 
 app = Flask(__name__)
-
-MODEL_PATH = os.path.join("model", "career_model.pkl")
-model = joblib.load(MODEL_PATH)
+model = train_model()
 
 CAREER_INFO = {
     "AI Engineer": {"skills": ["Python", "Machine Learning", "Deep Learning", "TensorFlow/PyTorch", "Math"], "roadmap": ["Python fundamentals", "NumPy & Pandas", "Machine Learning", "Deep Learning", "Computer Vision/NLP", "Build AI projects"]},
@@ -15,7 +12,6 @@ CAREER_INFO = {
     "Full-Stack Developer": {"skills": ["HTML", "CSS", "JavaScript", "Backend", "Database", "Git"], "roadmap": ["HTML/CSS", "JavaScript", "Frontend framework", "Backend APIs", "Database", "Deploy a full-stack app"]},
     "Cloud Engineer": {"skills": ["Linux", "Networking", "Cloud", "Docker", "Git", "Security"], "roadmap": ["Linux", "Networking", "Git", "AWS/Azure/GCP", "Docker", "Cloud deployment"]}
 }
-
 FEATURES = ["python", "java", "sql", "ml", "dl", "web", "cloud", "statistics", "data_visualization", "communication"]
 
 def build_features(form):
