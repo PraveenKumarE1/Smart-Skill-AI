@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SmartSkill AI Result</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body><main class="container"><section class="hero"><p class="badge">YOUR AI RECOMMENDATION</p><h1>{{ career }}</h1><p>This career path is the strongest match for your current skill profile.</p></section>
+<section class="result-grid"><div class="card"><h2>Your strengths</h2>{% if strengths %}<ul>{% for item in strengths %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p>Build your core skills first and retake the assessment.</p>{% endif %}</div>
+<div class="card"><h2>Skills to develop</h2><ul>{% for item in skills %}<li>{{ item }}</li>{% endfor %}</ul></div><div class="card full"><h2>Learning roadmap</h2><ol>{% for item in roadmap %}<li>{{ item }}</li>{% endfor %}</ol></div></section><a class="back" href="/">← Retake assessment</a></main></body></html>
