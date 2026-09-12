@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SmartSkill AI</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body><main class="container"><section class="hero"><p class="badge">AI + MACHINE LEARNING</p><h1>SmartSkill <span>AI</span></h1><p>Discover the career path that best matches your current skills.</p></section>
+<form action="/predict" method="post" class="card"><h2>Rate your skills</h2><p class="hint">Give each skill a score from 0 (beginner) to 5 (excellent).</p><div class="grid">
+{% for skill, label in [("python","Python"), ("java","Java"), ("sql","SQL"), ("ml","Machine Learning"), ("dl","Deep Learning"), ("web","Web Development"), ("cloud","Cloud Computing"), ("statistics","Statistics"), ("data_visualization","Data Visualization"), ("communication","Communication")] %}
+<label>{{ label }}<select name="{{ skill }}">{% for n in range(6) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select></label>{% endfor %}</div><button type="submit">Analyze My Career →</button></form></main></body></html>
