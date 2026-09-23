@@ -1,12 +1,7 @@
 services:
   - type: web
-    name: personal-ai-assistant
+    name: jenma-ai
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_MODEL
-        value: gemini-3.8-flash
