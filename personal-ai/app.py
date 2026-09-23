@@ -107,10 +107,10 @@ def offline_ai(message):
         return "Got it. I saved that to your local memory.", "memory"
 
     if q in {"hello","hi","hey","hello there","good morning","good evening"}:
-        return "Hello! I’m your offline Personal AI. I run locally without Ollama, Gemini, OpenAI, or any API.", "greeting"
+        return "Hello! I’m JENMA AI — your private offline intelligence engine. I run locally without Ollama, Gemini, OpenAI, or any API.", "greeting"
 
     if "who are you" in q or "what are you" in q:
-        return "I’m your Offline Personal AI. I use local rules, retrieval, memory, document search, task awareness and a safe calculator—no cloud AI required.", "identity"
+        return "I’m JENMA AI — a private local intelligence engine using reasoning rules, retrieval, memory, document search, task awareness and safe computation. No cloud AI is required.", "identity"
 
     if "what time" in q or q=="time":
         return "Your computer time is " + datetime.now().strftime("%I:%M %p") + ".", "time"
@@ -159,9 +159,9 @@ def offline_ai(message):
     # Lightweight local intent matching.
     if "thank" in q: return "You’re welcome. I’m ready whenever you need me.", "social"
     if "good night" in q: return "Good night. Your local data remains on this machine.", "social"
-    if "offline" in q: return "Offline mode is active. No AI API or Ollama process is required.", "system"
+    if "offline" in q: return "JENMA AI offline mode is active. No AI API, Ollama process, or cloud model is required.", "system"
 
-    return ("I’m running in offline mode. I don’t have a cloud language model, so I won’t pretend "
+    return ("I’m JENMA AI running in offline mode. I don’t have a cloud language model, so I won’t pretend "
             "to generate an answer I cannot compute locally. Try a calculation, memory command, "
             "task query, document question, or ask 'what can you do?'."), "fallback"
 
