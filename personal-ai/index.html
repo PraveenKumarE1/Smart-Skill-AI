@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Personal AI • JARVIS Local</title><link rel="stylesheet" href="/static/style.css"></head>
+<title>JENMA AI • Private Offline Intelligence</title><link rel="stylesheet" href="/static/style.css"></head>
 <body>
 <div class="shell">
 <aside class="side">
-  <div class="brand"><div class="mini-orb"></div><div><b>PERSONAL AI</b><span>Offline JARVIS mode</span></div></div>
+  <div class="brand"><div class="mini-orb"></div><div><b>JENMA AI</b><span>Private Offline Intelligence</span></div></div>
   <div class="panel">
     <h3>Memory</h3><div class="row"><input id="memoryInput" placeholder="Remember something"><button onclick="saveMemory()">+</button></div><div id="memoryList"></div>
   </div>
@@ -13,10 +13,10 @@
   <div class="side-foot">LOCAL-FIRST • NO API KEY</div>
 </aside>
 <main>
-<header><div><span class="eyebrow">PRIVATE ASSISTANT</span><strong>My Personal AI</strong><small id="status">Checking offline engine…</small></div><div class="head-actions"><button class="icon" onclick="toggleVoice()" title="Voice">🎙</button><button class="ghost" onclick="clearChat()">Clear</button></div></header>
+<header><div><span class="eyebrow">JENMA AI</span><strong>Private Intelligence Engine</strong><small id="status">Checking offline engine…</small></div><div class="head-actions"><button class="icon" onclick="toggleVoice()" title="Voice">🎙</button><button class="ghost" onclick="clearChat()">Clear</button></div></header>
 <section class="hero"><div class="orb-wrap"><div class="orb"><div class="orb-core"></div></div></div><div><span class="eyebrow">READY</span><h2>Think. Remember. Assist.</h2><p>Voice-enabled, memory-aware and able to search your local PDF, DOCX and text files — with no cloud AI or API key.</p><div class="chips"><button onclick="quick('What should I work on today?')">Daily plan</button><button onclick="quick('Summarize my open tasks.')">My tasks</button><button onclick="quick('Give me a study plan for today.')">Study mode</button></div></div></section>
 <div id="chat"></div>
-<form id="form"><button type="button" class="mic" onclick="toggleVoice()">🎙</button><input id="message" autocomplete="off" placeholder="Talk to your Personal AI…" required><button class="send">Send ↗</button></form>
+<form id="form"><button type="button" class="mic" onclick="toggleVoice()">🎙</button><input id="message" autocomplete="off" placeholder="Talk to JENMA AI…" required><button class="send">Send ↗</button></form>
 </main></div>
 <script>
 const chat=document.getElementById('chat'),status=document.getElementById('status');
@@ -37,5 +37,5 @@ async function toggleTask(id,done){await fetch('/api/tasks',{method:'PATCH',head
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function clearChat(){chat.innerHTML='';add('assistant','Chat cleared. What would you like to do?');}
 async function checkHealth(){try{const r=await fetch('/api/health');const d=await r.json();status.textContent=d.offline_ai?'● Offline AI • no API required':'● Local engine';}catch(e){status.textContent='● Start the local server';}}
-document.getElementById('form').addEventListener('submit',send);localStorage.setItem('voice','on');add('assistant','Hello! I’m your private Offline Personal AI. No Ollama, Gemini, OpenAI, or API key is required.');loadMemory();loadTasks();loadDocs();checkHealth();
+document.getElementById('form').addEventListener('submit',send);localStorage.setItem('voice','on');add('assistant','Hello! I’m JENMA AI — your private offline intelligence engine. No Ollama, Gemini, OpenAI, or API key is required.');loadMemory();loadTasks();loadDocs();checkHealth();
 </script></body></html>
