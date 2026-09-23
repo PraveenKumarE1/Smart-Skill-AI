@@ -1,13 +1,39 @@
-<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Personal AI</title><link rel='stylesheet' href='/static/style.css'></head>
-<body><div class='app'><aside><h1>Personal AI</h1><p class='muted'>Private • Local • Yours</p><section><h3>Memory</h3><input id='memoryInput' placeholder='e.g. I prefer Java'><button onclick='saveMemory()'>Remember</button><div id='memoryList'></div></section><section><h3>Quick note</h3><textarea id='noteInput' placeholder='Write a note...'></textarea><button onclick='saveNote()'>Save note</button></section></aside>
-<main><header><div><strong>My Personal AI</strong><span id='status'>Local assistant</span></div><button class='ghost' onclick='clearChat()'>Clear</button></header><div id='chat'></div><form id='form'><input id='message' autocomplete='off' placeholder='Talk to your Personal AI…' required><button>Send</button></form></main></div>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Personal AI • JARVIS Local</title><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><div class="mini-orb"></div><div><b>PERSONAL AI</b><span>Local JARVIS mode</span></div></div>
+  <div class="panel">
+    <h3>Memory</h3><div class="row"><input id="memoryInput" placeholder="Remember something"><button onclick="saveMemory()">+</button></div><div id="memoryList"></div>
+  </div>
+  <div class="panel"><h3>Quick Note</h3><textarea id="noteInput" placeholder="Write a private note..."></textarea><button class="wide" onclick="saveNote()">Save note</button></div>
+  <div class="panel"><h3>Tasks</h3><div class="row"><input id="taskInput" placeholder="Add a task"><button onclick="addTask()">+</button></div><div id="taskList"></div></div>
+  <div class="side-foot">LOCAL-FIRST • NO API KEY</div>
+</aside>
+<main>
+<header><div><span class="eyebrow">PRIVATE ASSISTANT</span><strong>My Personal AI</strong><small id="status">Checking local model…</small></div><div class="head-actions"><button class="icon" onclick="toggleVoice()" title="Voice">🎙</button><button class="ghost" onclick="clearChat()">Clear</button></div></header>
+<section class="hero"><div class="orb-wrap"><div class="orb"><div class="orb-core"></div></div></div><div><span class="eyebrow">READY</span><h2>Think. Remember. Assist.</h2><p>Voice-enabled, memory-aware and designed to keep your data on your computer.</p><div class="chips"><button onclick="quick('What should I work on today?')">Daily plan</button><button onclick="quick('Summarize my open tasks.')">My tasks</button><button onclick="quick('Give me a study plan for today.')">Study mode</button></div></div></section>
+<div id="chat"></div>
+<form id="form"><button type="button" class="mic" onclick="toggleVoice()">🎙</button><input id="message" autocomplete="off" placeholder="Talk to your Personal AI…" required><button class="send">Send ↗</button></form>
+</main></div>
 <script>
 const chat=document.getElementById('chat'),status=document.getElementById('status');
-function add(role,text){const el=document.createElement('div');el.className='bubble '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;}
-async function send(e){e.preventDefault();const input=document.getElementById('message'),msg=input.value.trim();if(!msg)return;add('user',msg);input.value='';add('assistant','Thinking…');const thinking=chat.lastChild;try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});const d=await r.json();thinking.textContent=d.reply||d.error;status.textContent=d.local_model?'● Local model online':'● Offline fallback'}catch(err){thinking.textContent='Unable to reach the local server.'}}
-async function saveMemory(){const input=document.getElementById('memoryInput'),text=input.value.trim();if(!text)return;await fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});input.value='';loadMemory()}
-async function loadMemory(){const r=await fetch('/api/memory'),data=await r.json();document.getElementById('memoryList').innerHTML=data.slice(-8).map(m=>'<div class="memory">'+escapeHtml(m.text)+'</div>').join('')}
-async function saveNote(){const input=document.getElementById('noteInput'),text=input.value.trim();if(!text)return;await fetch('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});input.value=''}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))} function clearChat(){chat.innerHTML='';add('assistant','Chat cleared. How can I help?')}
-document.getElementById('form').addEventListener('submit',send);add('assistant','Hello! I’m your private Personal AI. I can chat, remember useful information, and save notes.');loadMemory();
+let listening=false,recognition=null;
+function add(role,text){const el=document.createElement('div');el.className='bubble '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;if(role==='assistant'&&window.speechSynthesis&&localStorage.getItem('voice')==='on') speak(text);}
+function speak(text){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.98;speechSynthesis.speak(u);}
+function quick(t){document.getElementById('message').value=t;document.getElementById('form').requestSubmit();}
+async function send(e){e.preventDefault();const input=document.getElementById('message'),msg=input.value.trim();if(!msg)return;add('user',msg);input.value='';add('assistant','Thinking…');const thinking=chat.lastChild;try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});const d=await r.json();thinking.textContent=d.reply||d.error;status.textContent=d.local_model?'● Ollama online • '+d.model:'● Offline fallback • UI still works';}catch(err){thinking.textContent='Local server is unavailable. Run python app.py.';status.textContent='● Server offline';}}
+function toggleVoice(){if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Speech recognition is not supported in this browser. Try Chrome or Edge.');return;}if(listening){recognition.stop();return;}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.lang='en-IN';recognition.interimResults=false;recognition.onstart=()=>{listening=true;status.textContent='● Listening…';};recognition.onresult=e=>{document.getElementById('message').value=e.results[0][0].transcript;document.getElementById('form').requestSubmit();};recognition.onend=()=>{listening=false;checkHealth();};recognition.start();}
+async function saveMemory(){const i=document.getElementById('memoryInput'),text=i.value.trim();if(!text)return;await fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});i.value='';loadMemory();}
+async function loadMemory(){const r=await fetch('/api/memory'),data=await r.json();document.getElementById('memoryList').innerHTML=data.slice(-8).map(m=>'<div class="memory">'+escapeHtml(m.text)+'</div>').join('');}
+async function saveNote(){const i=document.getElementById('noteInput'),text=i.value.trim();if(!text)return;await fetch('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});i.value='';}
+async function addTask(){const i=document.getElementById('taskInput'),title=i.value.trim();if(!title)return;await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title})});i.value='';loadTasks();}
+async function loadTasks(){const r=await fetch('/api/tasks'),data=await r.json();document.getElementById('taskList').innerHTML=data.slice(-8).reverse().map(t=>'<div class="task '+(t.done?'done':'')+'" onclick="toggleTask('+t.id+','+(!t.done)+')"><span>◉</span>'+escapeHtml(t.title)+'</div>').join('');}
+async function toggleTask(id,done){await fetch('/api/tasks',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,done})});loadTasks();}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function clearChat(){chat.innerHTML='';add('assistant','Chat cleared. What would you like to do?');}
+async function checkHealth(){try{const r=await fetch('/api/health');const d=await r.json();status.textContent=d.ollama?'● Ollama online • '+d.model:'● Offline mode • local features ready';}catch(e){status.textContent='● Start the local server';}}
+document.getElementById('form').addEventListener('submit',send);localStorage.setItem('voice','on');add('assistant','Hello! I’m your private Personal AI. Use the microphone for voice input, save memories, and manage your tasks.');loadMemory();loadTasks();checkHealth();
 </script></body></html>
