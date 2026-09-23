@@ -50,3 +50,9 @@ Data is stored under `personal-ai/data/`. The memory, notes and tasks files are 
 - Desktop packaging
 
 This project is designed as a local personal assistant, not a cloud-hosted service.
+
+
+## Local document brain
+Upload PDF, DOCX, TXT, MD or CSV files from the sidebar. Files are extracted and indexed locally. When you ask a question, relevant chunks are retrieved locally and supplied to your Ollama model. No document upload to a cloud API is required.
+
+For offline PDF/DOCX support, `PyMuPDF` and `python-docx` are installed from the requirements file.
