@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data/memory.json
+data/notes.json
+.venv/
+.env
