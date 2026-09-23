@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: personal-ai-assistant
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: OLLAMA_MODEL
+        value: llama3.2
+      - key: OLLAMA_EMBED_MODEL
+        value: nomic-embed-text
