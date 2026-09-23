@@ -7,6 +7,7 @@ BASE=os.path.dirname(os.path.abspath(__file__))
 DATA_DIR=os.path.join(BASE,'data')
 MEMORY_FILE=os.path.join(DATA_DIR,'memory.json')
 NOTES_FILE=os.path.join(DATA_DIR,'notes.json')
+TASKS_FILE=os.path.join(DATA_DIR,'tasks.json')
 os.makedirs(DATA_DIR,exist_ok=True)
 app=Flask(__name__,static_folder='static')
 
@@ -21,34 +22,47 @@ def save_json(path,data):
 
 def fallback(message):
     q=message.lower()
-    if any(x in q for x in ['hello','hi','hey']): return 'Hello! I am your local Personal AI. Ask me something or tell me what to remember.'
-    if 'offline' in q: return 'I am running in offline fallback mode. Install Ollama and a local model for stronger answers.'
+    if any(x in q for x in ['hello','hi','hey']): return 'Hello! I am your local Personal AI. I can chat, remember information, save notes and manage tasks.'
+    if 'offline' in q: return 'I am in offline mode. The interface, memory, notes and tasks work without internet. Start Ollama for local LLM answers.'
+    if 'who are you' in q: return 'I am your private Personal AI: a local-first assistant designed to keep your data on your computer.'
     return 'I am running without a local language model. Start Ollama with a local model for full AI responses.'
 
-def ollama_reply(message,memories):
+def ollama_reply(message,memories,notes,tasks):
     model=os.getenv('OLLAMA_MODEL','llama3.2')
     url=os.getenv('OLLAMA_URL','http://127.0.0.1:11434/api/chat')
     memory_text='\n'.join('- '+m['text'] for m in memories[-20:]) or '- No saved memories'
-    system=('You are a helpful private personal AI assistant. Be concise, practical and honest. '+
-            'Use the supplied memory only when relevant. Never claim an action you did not perform.\n\n'+
-            'Known user memory:\n'+memory_text)
+    task_text='\n'.join('- '+t['title'] for t in tasks if not t.get('done')) or '- No open tasks'
+    system=('You are a private local personal AI assistant. Be concise, practical and honest. '
+            'Use supplied memory only when relevant. You can suggest actions, but never claim an action happened unless the application performed it. '
+            'The UI can manage memories, notes and tasks.\n\nKnown memory:\n'+memory_text+
+            '\n\nOpen tasks:\n'+task_text)
     try:
-        r=requests.post(url,json={'model':model,'stream':False,'messages':[{'role':'system','content':system},{'role':'user','content':message}]},timeout=90)
+        r=requests.post(url,json={'model':model,'stream':False,'messages':[
+            {'role':'system','content':system},{'role':'user','content':message}]},timeout=90)
         r.raise_for_status()
-        return r.json()['message']['content'],True
+        return r.json()['message']['content'],True,model
     except Exception:
-        return fallback(message),False
+        return fallback(message),False,model
 
 @app.route('/')
 def index(): return send_from_directory(BASE,'index.html')
+
+@app.route('/api/health')
+def health():
+    model=os.getenv('OLLAMA_MODEL','llama3.2')
+    try:
+        r=requests.get(os.getenv('OLLAMA_URL','http://127.0.0.1:11434/api/tags').replace('/api/chat','/api/tags'),timeout=2)
+        online=r.ok
+    except Exception: online=False
+    return jsonify({'ollama':online,'model':model,'offline_ready':True})
 
 @app.route('/api/chat',methods=['POST'])
 def chat():
     data=request.get_json(silent=True) or {}
     message=str(data.get('message','')).strip()
     if not message: return jsonify({'error':'Message is required'}),400
-    reply,local_model=ollama_reply(message,load_json(MEMORY_FILE,[]))
-    return jsonify({'reply':reply,'local_model':local_model})
+    reply,local_model,model=ollama_reply(message,load_json(MEMORY_FILE,[]),load_json(NOTES_FILE,[]),load_json(TASKS_FILE,[]))
+    return jsonify({'reply':reply,'local_model':local_model,'model':model})
 
 @app.route('/api/memory',methods=['GET','POST','DELETE'])
 def memory():
@@ -72,4 +86,25 @@ def notes():
     note={'id':int(datetime.now().timestamp()*1000),'text':text,'created_at':datetime.now().isoformat()}
     notes.append(note); save_json(NOTES_FILE,notes); return jsonify(note),201
 
-if __name__=='__main__': app.run(host='127.0.0.1',port=5000,debug=True)
+@app.route('/api/tasks',methods=['GET','POST','PATCH','DELETE'])
+def tasks():
+    tasks=load_json(TASKS_FILE,[])
+    if request.method=='GET': return jsonify(tasks)
+    data=request.get_json(silent=True) or {}
+    task_id=data.get('id')
+    if request.method=='POST':
+        title=str(data.get('title','')).strip()
+        if not title: return jsonify({'error':'Task title is required'}),400
+        item={'id':int(datetime.now().timestamp()*1000),'title':title,'done':False,'created_at':datetime.now().isoformat()}
+        tasks.append(item); save_json(TASKS_FILE,tasks); return jsonify(item),201
+    if request.method=='PATCH':
+        for t in tasks:
+            if str(t.get('id'))==str(task_id):
+                t['done']=bool(data.get('done',not t.get('done')))
+                save_json(TASKS_FILE,tasks); return jsonify(t)
+        return jsonify({'error':'Task not found'}),404
+    save_json(TASKS_FILE,[t for t in tasks if str(t.get('id'))!=str(task_id)])
+    return jsonify({'ok':True})
+
+if __name__=='__main__':
+    app.run(host='127.0.0.1',port=5000,debug=True)
