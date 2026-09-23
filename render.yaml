@@ -6,7 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
-      - key: OLLAMA_MODEL
-        value: llama3.2
-      - key: OLLAMA_EMBED_MODEL
-        value: nomic-embed-text
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
