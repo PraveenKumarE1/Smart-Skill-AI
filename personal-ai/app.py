@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, send_from_directory
-import json, os
+import json, os, re
 from datetime import datetime
 import requests
 
@@ -8,7 +8,10 @@ DATA_DIR=os.path.join(BASE,'data')
 MEMORY_FILE=os.path.join(DATA_DIR,'memory.json')
 NOTES_FILE=os.path.join(DATA_DIR,'notes.json')
 TASKS_FILE=os.path.join(DATA_DIR,'tasks.json')
+DOC_DIR=os.path.join(DATA_DIR,'documents')
+DOCS_FILE=os.path.join(DATA_DIR,'documents.json')
 os.makedirs(DATA_DIR,exist_ok=True)
+os.makedirs(DOC_DIR,exist_ok=True)
 app=Flask(__name__,static_folder='static')
 
 def load_json(path,default):
@@ -20,6 +23,37 @@ def load_json(path,default):
 def save_json(path,data):
     with open(path,'w',encoding='utf-8') as f: json.dump(data,f,indent=2,ensure_ascii=False)
 
+
+
+def extract_text(path,filename):
+    ext=os.path.splitext(filename.lower())[1]
+    if ext=='.pdf':
+        import fitz
+        doc=fitz.open(path)
+        return '\n'.join(page.get_text() for page in doc)
+    if ext=='.docx':
+        from docx import Document
+        return '\n'.join(p.text for p in Document(path).paragraphs)
+    if ext in ('.txt','.md','.csv'):
+        with open(path,'r',encoding='utf-8',errors='ignore') as f: return f.read()
+    raise ValueError('Supported files: PDF, DOCX, TXT, MD, CSV')
+
+def split_chunks(text,size=1200):
+    text=re.sub(r'\s+',' ',text).strip()
+    return [text[i:i+size] for i in range(0,len(text),size)] if text else []
+
+def retrieve_documents(query,limit=4):
+    docs=load_json(DOCS_FILE,[])
+    terms=set(re.findall(r'\w+',query.lower()))
+    scored=[]
+    for d in docs:
+        for chunk in d.get('chunks',[]):
+            words=re.findall(r'\w+',chunk.lower())
+            score=sum(words.count(t) for t in terms)
+            if score: scored.append((score,d['name'],chunk))
+    scored.sort(key=lambda x:x[0],reverse=True)
+    return scored[:limit]
+
 def fallback(message):
     q=message.lower()
     if any(x in q for x in ['hello','hi','hey']): return 'Hello! I am your local Personal AI. I can chat, remember information, save notes and manage tasks.'
@@ -27,11 +61,12 @@ def fallback(message):
     if 'who are you' in q: return 'I am your private Personal AI: a local-first assistant designed to keep your data on your computer.'
     return 'I am running without a local language model. Start Ollama with a local model for full AI responses.'
 
-def ollama_reply(message,memories,notes,tasks):
+def ollama_reply(message,memories,notes,tasks,documents=None):
     model=os.getenv('OLLAMA_MODEL','llama3.2')
     url=os.getenv('OLLAMA_URL','http://127.0.0.1:11434/api/chat')
     memory_text='\n'.join('- '+m['text'] for m in memories[-20:]) or '- No saved memories'
     task_text='\n'.join('- '+t['title'] for t in tasks if not t.get('done')) or '- No open tasks'
+    doc_context='\n\n'.join('[Document: '+name+']\n'+chunk for _,name,chunk in (documents or []))
     system=('You are a private local personal AI assistant. Be concise, practical and honest. '
             'Use supplied memory only when relevant. You can suggest actions, but never claim an action happened unless the application performed it. '
             'The UI can manage memories, notes and tasks.\n\nKnown memory:\n'+memory_text+
@@ -61,8 +96,9 @@ def chat():
     data=request.get_json(silent=True) or {}
     message=str(data.get('message','')).strip()
     if not message: return jsonify({'error':'Message is required'}),400
-    reply,local_model,model=ollama_reply(message,load_json(MEMORY_FILE,[]),load_json(NOTES_FILE,[]),load_json(TASKS_FILE,[]))
-    return jsonify({'reply':reply,'local_model':local_model,'model':model})
+    docs=retrieve_documents(message)
+    reply,local_model,model=ollama_reply(message,load_json(MEMORY_FILE,[]),load_json(NOTES_FILE,[]),load_json(TASKS_FILE,[]),docs)
+    return jsonify({'reply':reply,'local_model':local_model,'model':model,'sources':[{'name':n,'score':s} for s,n,_ in docs]})
 
 @app.route('/api/memory',methods=['GET','POST','DELETE'])
 def memory():
@@ -104,6 +140,35 @@ def tasks():
                 save_json(TASKS_FILE,tasks); return jsonify(t)
         return jsonify({'error':'Task not found'}),404
     save_json(TASKS_FILE,[t for t in tasks if str(t.get('id'))!=str(task_id)])
+    return jsonify({'ok':True})
+
+@app.route('/api/documents',methods=['GET','POST','DELETE'])
+def documents():
+    docs=load_json(DOCS_FILE,[])
+    if request.method=='GET':
+        return jsonify([{'id':d['id'],'name':d['name'],'size':d['size'],'chunks':len(d.get('chunks',[])),'created_at':d['created_at']} for d in docs])
+    if request.method=='POST':
+        if 'file' not in request.files: return jsonify({'error':'Choose a file'}),400
+        f=request.files['file']
+        if not f.filename: return jsonify({'error':'Choose a file'}),400
+        ext=os.path.splitext(f.filename.lower())[1]
+        if ext not in ('.pdf','.docx','.txt','.md','.csv'): return jsonify({'error':'Supported: PDF, DOCX, TXT, MD, CSV'}),400
+        safe=re.sub(r'[^a-zA-Z0-9._-]','_',f.filename)
+        path=os.path.join(DOC_DIR,safe); f.save(path)
+        try: text=extract_text(path,safe)
+        except Exception as e:
+            try: os.remove(path)
+            except OSError: pass
+            return jsonify({'error':'Could not read file: '+str(e)}),400
+        item={'id':int(datetime.now().timestamp()*1000),'name':safe,'size':os.path.getsize(path),'created_at':datetime.now().isoformat(),'chunks':split_chunks(text)}
+        docs=[d for d in docs if d.get('name')!=safe]; docs.append(item); save_json(DOCS_FILE,docs)
+        return jsonify({'id':item['id'],'name':item['name'],'chunks':len(item['chunks'])}),201
+    data=request.get_json(silent=True) or {}; doc_id=data.get('id')
+    target=next((d for d in docs if str(d.get('id'))==str(doc_id)),None)
+    if target:
+        try: os.remove(os.path.join(DOC_DIR,target['name']))
+        except OSError: pass
+        docs=[d for d in docs if str(d.get('id'))!=str(doc_id)]; save_json(DOCS_FILE,docs)
     return jsonify({'ok':True})
 
 if __name__=='__main__':
