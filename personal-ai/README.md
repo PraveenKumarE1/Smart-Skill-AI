@@ -1,6 +1,8 @@
 # Personal AI — Local JARVIS Assistant
 
-A privacy-first personal AI assistant that runs on your computer. It combines a local web interface, Ollama-powered chat, persistent memory, notes, tasks, voice input/output, local document search and a lightweight 3D-style animated assistant orb.
+A privacy-first personal AI assistant that runs locally, with a Render-ready Docker deployment configuration.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/PraveenKumarE1/Smart-Skill-AI)
 
 ## Features
 - 🤖 Local LLM chat with Ollama (default: llama3.2)
@@ -8,66 +10,37 @@ A privacy-first personal AI assistant that runs on your computer. It combines a 
 - 🧠 Local semantic vector retrieval using an Ollama embedding model
 - 📚 Offline document brain for PDF, DOCX, TXT, MD and CSV
 - 📝 Private notes
-- ✅ Local task manager with completion state
-- 🎙 Browser voice input using Web Speech API
-- 🔊 Browser voice output using SpeechSynthesis
-- ✨ Animated assistant orb / JARVIS-style UI
-- 📡 Ollama and semantic-model health status
-- 📴 Offline-first UI, memory, notes, tasks and document storage
-- 🔐 No cloud API key required
+- ✅ Local task manager
+- 🎙 Browser voice input
+- 🔊 Browser voice output
+- ✨ JARVIS-style animated UI
+- 🔐 Local-first privacy
+
+## Public deployment
+
+The repository includes `Dockerfile` and `render.yaml` for Render. Render supports Docker-based web services and gives deployed services a public `onrender.com` URL. 
+
+**Important:** the current AI engine is Ollama-local. A public Render deployment needs Ollama hosted separately or a hosted LLM/embedding provider configured through environment variables. The Render web service alone does not make a local Ollama process available.
+
+### Deploy
+1. Click **Deploy to Render** above.
+2. Connect your GitHub account if requested.
+3. Select the `personal-ai` service configuration.
+4. Deploy the web service.
+5. Configure a hosted AI backend before expecting cloud AI responses.
 
 ## Run locally
 1. Install Python 3.10+
-2. Open a terminal in this folder
-3. Install packages:
+2. Install dependencies:
    `pip install -r requirements.txt`
-4. Install Ollama
-5. Download the chat model:
+3. Install Ollama.
+4. Run:
    `ollama pull llama3.2`
-6. Download the local embedding model:
    `ollama pull nomic-embed-text`
-7. Start the app:
+5. Start:
    `python app.py`
-8. Open `http://127.0.0.1:5000`
-
-## Configuration
-- `OLLAMA_MODEL` — local chat model, default `llama3.2`
-- `OLLAMA_EMBED_MODEL` — local embedding model, default `nomic-embed-text`
-- `OLLAMA_URL` — default `http://127.0.0.1:11434/api/chat`
-
-PowerShell example:
-```powershell
-$env:OLLAMA_MODEL="llama3.2"
-$env:OLLAMA_EMBED_MODEL="nomic-embed-text"
-python app.py
-```
-
-## Semantic memory
-The assistant now creates local embedding vectors with Ollama and stores them in `data/vectors.json`. Questions are converted to vectors and matched with cosine similarity against document chunks.
-
-If the embedding model is unavailable, the application automatically falls back to local keyword retrieval. No document is sent to a cloud embedding service.
-
-To rebuild vectors after changing the embedding model:
-```powershell
-Invoke-WebRequest -Method POST http://127.0.0.1:5000/api/semantic/rebuild
-```
-
-## Local document brain
-Upload PDF, DOCX, TXT, MD or CSV files from the sidebar. Files are extracted and indexed locally. Relevant chunks are retrieved with semantic vector search and supplied to the local Ollama model.
-
-For offline PDF/DOCX support, `PyMuPDF` and `python-docx` are installed from the requirements file.
-
-## Offline behavior
-The interface, memory, notes, tasks and stored documents do not require internet access. Full natural-language generation and semantic embeddings require local Ollama models. If Ollama is stopped, the app uses a small offline fallback response and keyword document retrieval.
+6. Open `http://127.0.0.1:5000`.
 
 ## Privacy
-Data is stored under `personal-ai/data/`. Memory, notes, tasks, documents and vector indexes are intended to remain on your computer and should not be committed to Git.
 
-## Roadmap
-- Streaming local responses
-- PDF page-level citations
-- SQLite/FAISS-style local vector storage
-- Optional calendar/reminder integrations
-- Desktop packaging
-
-This project is designed as a local personal assistant, not a cloud-hosted service.
+Local mode stores memory, notes, tasks, documents and vector indexes under `personal-ai/data/`. These files should not be committed to Git.
