@@ -70,7 +70,8 @@ def ollama_reply(message,memories,notes,tasks,documents=None):
     system=('You are a private local personal AI assistant. Be concise, practical and honest. '
             'Use supplied memory only when relevant. You can suggest actions, but never claim an action happened unless the application performed it. '
             'The UI can manage memories, notes and tasks.\n\nKnown memory:\n'+memory_text+
-            '\n\nOpen tasks:\n'+task_text)
+            '\n\nOpen tasks:\n'+task_text+
+            ('\n\nRelevant local documents:\n'+doc_context if doc_context else ''))
     try:
         r=requests.post(url,json={'model':model,'stream':False,'messages':[
             {'role':'system','content':system},{'role':'user','content':message}]},timeout=90)
